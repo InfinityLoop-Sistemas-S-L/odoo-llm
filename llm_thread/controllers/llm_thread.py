@@ -13,7 +13,7 @@ class LLMThreadController(http.Controller):
         # Use a cursor block to ensure the cursor remains open for the duration of the generator
         with registry(dbname).cursor() as cr:
             env = api.Environment(cr, env.uid, env.context)
-
+           
             # Convert string data to bytes for all yields
             yield f"data: {json.dumps({'type': 'start'})}\n\n".encode()
 
@@ -73,7 +73,7 @@ class LLMThreadController(http.Controller):
             "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",  # Disable nginx buffering
         }
-
+        _logger.info("Streaming response for thread %s", thread_id)
         return Response(
             self.generate(request.cr.dbname, request.env, thread_id, system_prompt),
             direct_passthrough=True,
@@ -83,7 +83,7 @@ class LLMThreadController(http.Controller):
     @http.route("/llm/thread/post_ai_response", type="json", auth="user")
     def post_ai_response(self, thread_id, **kwargs):
         """Post a message to the thread"""
-        _logger.debug("Posting message - kwargs: %s", kwargs)
+        _logger.info("Posting message - kwargs: %s", kwargs)
         thread = request.env["llm.thread"].browse(int(thread_id))
         message = thread.post_ai_response(**kwargs)
         return message

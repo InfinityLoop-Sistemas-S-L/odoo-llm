@@ -116,10 +116,13 @@ class LLMProvider(models.Model):
         # Make the API call
         response = self.client.chat.completions.create(**params)
 
+        _logger.info(f"OpenAI chat response: {response}")
         # Process the response based on streaming mode
         if not stream:
+            _logger.inof("Non-streaming response")  
             return self._process_non_streaming_response(response)
         else:
+            _logger.info("Streaming response")
             return self._process_streaming_response(response)
 
     def _prepare_openai_chat_params(self, model, messages, stream, tools, tool_choice):
@@ -207,7 +210,13 @@ class LLMProvider(models.Model):
         tool_call_chunks = {}
 
         for chunk in response:
-            delta = chunk.choices[0].delta
+            if not hasattr(chunk, "choices") or not chunk.choices:
+                continue
+            choice = chunk.choices[0]
+            # Validar que el choice tenga delta
+            if not hasattr(choice, "delta"):
+                continue
+            delta = choice.delta
 
             # Handle normal content
             if hasattr(delta, "content") and delta.content is not None:

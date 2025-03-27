@@ -66,7 +66,6 @@ class LLMThread(models.Model):
     def post_ai_response(self, **kwargs):
         """Post a message to the thread with support for tool messages"""
         body = emoji.demojize(kwargs.get("body"))
-
         # Handle tool messages
         tool_call_id = kwargs.get("tool_call_id")
         subtype_xmlid = kwargs.get("subtype_xmlid")
@@ -88,10 +87,11 @@ class LLMThread(models.Model):
                 partner_ids=[],  # No partner notifications
                 subtype_xmlid=subtype_xmlid,
             )
-
+            _logger.info("********************************* 2")
             # Set the tool_call_id on the message
             message.write({"tool_call_id": tool_call_id})
-
+            _logger.info("********************************* 3")
+            _logger.info("Tool message posted: %s", message)
             return message.message_format()[0]
 
         # Handle assistant messages with tool calls
@@ -170,12 +170,12 @@ class LLMThread(models.Model):
             response_generator = self._chat_with_tools(
                 formatted_messages, tool_ids, stream
             )
+           
 
             # Process the response stream using the helper method
             yield from self._process_llm_response(response_generator)
 
         except Exception as e:
-            _logger.error("Error getting AI response: %s", str(e))
             yield {"type": "error", "error": str(e)}
 
     def _process_llm_response(self, response_generator):
@@ -190,12 +190,13 @@ class LLMThread(models.Model):
         """
         content = ""
         assistant_tool_calls = []
-
         try:
             for response in response_generator:
                 # Handle content
+                # Ignorar respuestas vacías o mal formadas
+                _logger.info("********************************* %s" % response)
                 if response.get("content") is not None:
-                    content += response.get("content", "")
+                    content += response.get("content", "")  
                     yield {
                         "type": "content",
                         "role": "assistant",
@@ -243,6 +244,7 @@ class LLMThread(models.Model):
                 )
 
         except Exception as e:
+            _logger,info("Respuesta ---- %s",response)
             _logger.error("Error processing LLM response: %s", str(e))
             yield {"type": "error", "error": str(e)}
 
@@ -313,7 +315,6 @@ class LLMThread(models.Model):
 
                 # Update the response with the tool result
                 response["tool_call"] = tool_result
-
             yield response
 
     def _create_tool_response(self, tool_name, arguments_str, tool_id, result_data):
